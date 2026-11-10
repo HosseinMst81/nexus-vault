@@ -13,6 +13,8 @@
     "dev:web": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
     "start": "npm --prefix apps/api run start:prod",
+    "seed": "npm --prefix apps/api run seed",
+    "seed:fresh": "npm --prefix apps/api run seed:fresh",
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down"
   },

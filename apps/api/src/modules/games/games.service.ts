@@ -1,15 +1,19 @@
 import {
   Injectable,
-  NotFoundException,
-  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Game, GameStatus } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
-import { FilterGamesDto, GameSortBy, SortOrder } from './dto/filter-games.dto';
+import { FilterGamesDto } from './dto/filter-games.dto';
+import { GameFilterBuilder } from './query-builders/game-filter.builder';
+import {
+  GameNotFoundException,
+  DuplicateGameSlugException,
+  InvalidPlaytimeException,
+} from '../../common/exceptions/domain.exceptions';
 
 @Injectable()
 export class GamesService {
@@ -21,64 +25,17 @@ export class GamesService {
   ) {}
 
   async findAll(filterDto: FilterGamesDto) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      genre,
-      platform,
-      status,
-      isFavorite,
-      minScore,
-      sortBy = GameSortBy.CREATED_AT,
-      sortOrder = SortOrder.DESC,
-    } = filterDto;
+    const { page = 1, limit = 20, sortBy, sortOrder } = filterDto;
 
-    const query: SelectQueryBuilder<Game> = this.gameRepository
-      .createQueryBuilder('game')
-      .leftJoinAndSelect('game.achievements', 'achievements');
+    const baseQuery = this.gameRepository.createQueryBuilder('game');
 
-    if (search) {
-      query.andWhere(
-        '(LOWER(game.title) LIKE :search OR LOWER(game.developer) LIKE :search OR LOWER(game.publisher) LIKE :search OR LOWER(game.description) LIKE :search OR LOWER(game.tags) LIKE :search)',
-        { search: `%${search.toLowerCase()}%` },
-      );
-    }
-
-    if (genre) {
-      query.andWhere('LOWER(game.genres) LIKE :genre', {
-        genre: `%${genre.toLowerCase()}%`,
-      });
-    }
-
-    if (platform) {
-      query.andWhere('LOWER(game.platforms) LIKE :platform', {
-        platform: `%${platform.toLowerCase()}%`,
-      });
-    }
-
-    if (status) {
-      query.andWhere('game.status = :status', { status });
-    }
-
-    if (typeof isFavorite === 'boolean') {
-      query.andWhere('game.isFavorite = :isFavorite', { isFavorite });
-    }
-
-    if (minScore) {
-      query.andWhere('game.metacriticScore >= :minScore', { minScore });
-    }
-
-    // Sorting
-    const safeSortBy = Object.values(GameSortBy).includes(sortBy)
-      ? sortBy
-      : GameSortBy.CREATED_AT;
-    const safeSortOrder = sortOrder === SortOrder.ASC ? 'ASC' : 'DESC';
-
-    query.orderBy(`game.${safeSortBy}`, safeSortOrder);
-
-    const skip = (page - 1) * limit;
-    query.skip(skip).take(limit);
+    // Open/Closed Principle: delegate dynamic query composition to GameFilterBuilder
+    const query = GameFilterBuilder.create(baseQuery)
+      .withRelations()
+      .applyFilters(filterDto)
+      .applySorting(sortBy, sortOrder)
+      .applyPagination(page, limit)
+      .build();
 
     const [items, total] = await query.getManyAndCount();
 
@@ -88,7 +45,7 @@ export class GamesService {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit) || 1,
       },
     };
   }
@@ -96,11 +53,16 @@ export class GamesService {
   async findOne(id: string): Promise<Game> {
     const game = await this.gameRepository.findOne({
       where: { id },
-      relations: ['achievements', 'reviews', 'collectionItems', 'collectionItems.collection'],
+      relations: [
+        'achievements',
+        'reviews',
+        'collectionItems',
+        'collectionItems.collection',
+      ],
     });
 
     if (!game) {
-      throw new NotFoundException(`Game with ID "${id}" was not found.`);
+      throw new GameNotFoundException(id);
     }
 
     return game;
@@ -113,7 +75,7 @@ export class GamesService {
     });
 
     if (!game) {
-      throw new NotFoundException(`Game with slug "${slug}" was not found.`);
+      throw new GameNotFoundException(`slug: ${slug}`);
     }
 
     return game;
@@ -131,7 +93,7 @@ export class GamesService {
 
     const existing = await this.gameRepository.findOne({ where: { slug } });
     if (existing) {
-      throw new ConflictException(`A game with slug "${slug}" already exists.`);
+      throw new DuplicateGameSlugException(slug);
     }
 
     const game = this.gameRepository.create({
@@ -170,19 +132,28 @@ export class GamesService {
   }
 
   async logPlaytime(id: string, additionalMinutes: number): Promise<Game> {
+    if (additionalMinutes <= 0) {
+      throw new InvalidPlaytimeException(additionalMinutes);
+    }
+
     const game = await this.findOne(id);
     game.playtimeMinutes = (game.playtimeMinutes || 0) + additionalMinutes;
     game.lastPlayedAt = new Date();
-    if (game.status === GameStatus.BACKLOG || game.status === GameStatus.WISHLIST) {
+
+    if (
+      game.status === GameStatus.BACKLOG ||
+      game.status === GameStatus.WISHLIST
+    ) {
       game.status = GameStatus.PLAYING;
     }
+
     return this.gameRepository.save(game);
   }
 
   async getFeatured(): Promise<Game[]> {
     return this.gameRepository.find({
       order: { metacriticScore: 'DESC', userScore: 'DESC' },
-      take: 5,
+      take: 6,
       relations: ['achievements'],
     });
   }

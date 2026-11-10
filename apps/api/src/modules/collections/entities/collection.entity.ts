@@ -1,18 +1,13 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { AbstractBaseEntity } from '../../../common/entities/base.entity';
 import { CollectionItem } from './collection-item.entity';
 
 @Entity('collections')
-export class Collection {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class Collection extends AbstractBaseEntity {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
@@ -30,10 +25,4 @@ export class Collection {
 
   @OneToMany(() => CollectionItem, (item) => item.collection, { cascade: true })
   items: CollectionItem[];
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

@@ -1,19 +1,15 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
-  CreateDateColumn,
   Index,
 } from 'typeorm';
+import { AbstractBaseEntity } from '../../../common/entities/base.entity';
 import { Game } from '../../games/entities/game.entity';
 
 @Entity('reviews')
-export class Review {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class Review extends AbstractBaseEntity {
   @Index()
   @Column({ type: 'uuid' })
   gameId: string;
@@ -51,7 +47,4 @@ export class Review {
 
   @Column('simple-array', { nullable: true })
   cons: string[];
-
-  @CreateDateColumn()
-  createdAt: Date;
 }
