@@ -1,7 +1,5 @@
 import {
   Injectable,
-  NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +7,11 @@ import { Collection } from './entities/collection.entity';
 import { CollectionItem } from './entities/collection-item.entity';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { Game } from '../games/entities/game.entity';
+import {
+  CollectionNotFoundException,
+  GameNotFoundException,
+  GameAlreadyInCollectionException,
+} from '../../common/exceptions/domain.exceptions';
 
 @Injectable()
 export class CollectionsService {
@@ -40,7 +43,7 @@ export class CollectionsService {
     });
 
     if (!col) {
-      throw new NotFoundException(`Collection with ID "${id}" was not found.`);
+      throw new CollectionNotFoundException(id);
     }
 
     return col;
@@ -67,7 +70,7 @@ export class CollectionsService {
     await this.findOne(collectionId);
     const game = await this.gameRepo.findOne({ where: { id: gameId } });
     if (!game) {
-      throw new NotFoundException(`Game with ID "${gameId}" was not found.`);
+      throw new GameNotFoundException(gameId);
     }
 
     const existing = await this.itemRepo.findOne({
@@ -75,7 +78,7 @@ export class CollectionsService {
     });
 
     if (existing) {
-      throw new ConflictException('Game is already in this collection.');
+      throw new GameAlreadyInCollectionException(collectionId, gameId);
     }
 
     const item = this.itemRepo.create({
@@ -94,7 +97,7 @@ export class CollectionsService {
     });
 
     if (!item) {
-      throw new NotFoundException('Game is not in this collection.');
+      throw new GameNotFoundException(`Game "${gameId}" is not in collection "${collectionId}"`);
     }
 
     await this.itemRepo.remove(item);

@@ -70,14 +70,15 @@ nexus-vault/
 │   ├── api/                          # Nest.js Backend Application
 │   │   ├── Dockerfile                # Multi-stage production Dockerfile
 │   │   ├── src/
-│   │   │   ├── common/               # Filters, interceptors, pagination DTOs
+│   │   │   ├── common/               # Base entities (LSP), domain exceptions, DTOs
+│   │   │   ├── database/seed/        # Dedicated real-world seeder engine & data
+│   │   │   ├── scripts/seed.ts       # Standalone CLI database seed script
 │   │   │   ├── modules/
-│   │   │   │   ├── games/            # Games catalog, search, status, playtime
+│   │   │   │   ├── games/            # Games catalog, search builder (OCP), status
 │   │   │   │   ├── collections/      # Curated vaults & playlist management
 │   │   │   │   ├── reviews/          # Player feedback & ratings
 │   │   │   │   ├── stats/            # Telemetry & library analytics
-│   │   │   │   ├── health/           # Liveness probes
-│   │   │   │   └── seed/             # Automated bootstrap & seed data
+│   │   │   │   └── health/           # Liveness probes
 │   │   │   ├── app.module.ts
 │   │   │   └── main.ts               # Swagger, CORS, validation configuration
 │   │   └── tsconfig.json
@@ -159,7 +160,16 @@ npm install
 npm run build
 ```
 
-#### 3. Run Servers
+#### 3. Seed Real-World Data (Standalone CLI Script)
+```bash
+# Seed database if unpopulated
+npm run seed
+
+# Fresh re-seed (drops existing records and seeds 17+ AAA real-world titles, achievements, reviews, and collections)
+npm run seed:fresh
+```
+
+#### 4. Run Servers
 ```bash
 # Terminal 1 - Nest.js Backend API
 cd apps/api

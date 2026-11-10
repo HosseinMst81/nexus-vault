@@ -1,12 +1,10 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   Index,
 } from 'typeorm';
+import { AbstractBaseEntity } from '../../../common/entities/base.entity';
 import { Achievement } from './achievement.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { CollectionItem } from '../../collections/entities/collection-item.entity';
@@ -21,10 +19,7 @@ export enum GameStatus {
 }
 
 @Entity('games')
-export class Game {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class Game extends AbstractBaseEntity {
   @Index()
   @Column({ type: 'varchar', length: 255 })
   title: string;
@@ -69,7 +64,7 @@ export class Game {
   @Column({ type: 'int', default: 0 })
   playtimeMinutes: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   lastPlayedAt: Date;
 
   @Index()
@@ -138,10 +133,4 @@ export class Game {
 
   @OneToMany(() => CollectionItem, (item) => item.game)
   collectionItems: CollectionItem[];
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review } from './entities/review.entity';
 import { Game } from '../games/entities/game.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import {
+  GameNotFoundException,
+  ReviewNotFoundException,
+} from '../../common/exceptions/domain.exceptions';
 
 @Injectable()
 export class ReviewsService {
@@ -24,7 +28,7 @@ export class ReviewsService {
   async create(dto: CreateReviewDto) {
     const game = await this.gameRepo.findOne({ where: { id: dto.gameId } });
     if (!game) {
-      throw new NotFoundException(`Game with ID "${dto.gameId}" was not found.`);
+      throw new GameNotFoundException(dto.gameId);
     }
 
     const review = this.reviewRepo.create({
@@ -40,7 +44,7 @@ export class ReviewsService {
 
     const saved = await this.reviewRepo.save(review);
 
-    // Update game userScore
+    // Dynamic Rolling Average: update game userScore
     const allReviews = await this.reviewRepo.find({
       where: { gameId: dto.gameId },
     });
@@ -58,7 +62,7 @@ export class ReviewsService {
   async voteHelpful(id: string) {
     const review = await this.reviewRepo.findOne({ where: { id } });
     if (!review) {
-      throw new NotFoundException(`Review with ID "${id}" was not found.`);
+      throw new ReviewNotFoundException(id);
     }
 
     review.helpfulVotes += 1;
@@ -68,7 +72,7 @@ export class ReviewsService {
   async remove(id: string) {
     const review = await this.reviewRepo.findOne({ where: { id } });
     if (!review) {
-      throw new NotFoundException(`Review with ID "${id}" was not found.`);
+      throw new ReviewNotFoundException(id);
     }
 
     await this.reviewRepo.remove(review);

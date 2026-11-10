@@ -6,7 +6,7 @@ import { CollectionsModule } from './modules/collections/collections.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { HealthModule } from './modules/health/health.module';
-import { SeedModule } from './modules/seed/seed.module';
+import { SeedModule } from './database/seed/seed.module';
 import { Game } from './modules/games/entities/game.entity';
 import { Achievement } from './modules/games/entities/achievement.entity';
 import { Collection } from './modules/collections/entities/collection.entity';
