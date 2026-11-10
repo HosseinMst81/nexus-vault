@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nexus-postgres-dev
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexuspass
+      POSTGRES_DB: nexus_vault
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - nexus-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus_vault"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nexus-api-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: nexus
+      DB_PASSWORD: nexuspass
+      DB_NAME: nexus_vault
+    ports:
+      - "4000:4000"
+    command: npm run start:dev
+    networks:
+      - nexus-dev-network
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: nexus-web-dev
+    restart: unless-stopped
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    command: npm run dev
+    networks:
+      - nexus-dev-network
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  nexus-dev-network:

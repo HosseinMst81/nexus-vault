@@ -1,0 +1,33 @@
+{
+  "name": "nexus-vault",
+  "version": "1.0.0",
+  "description": "Nexus Vault — Ultra-Modern Digital Video Game Library & Management Ecosystem",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently -n \"api,web\" -c \"cyan,magenta\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm --prefix apps/api run start:dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
+    "start": "npm --prefix apps/api run start:prod",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": [
+    "game-library",
+    "digital-library",
+    "nestjs",
+    "nextjs",
+    "postgresql",
+    "typeorm",
+    "tailwind",
+    "docker",
+    "gaming",
+    "steam-clone"
+  ],
+  "author": "Nexus Team",
+  "license": "MIT"
+}
